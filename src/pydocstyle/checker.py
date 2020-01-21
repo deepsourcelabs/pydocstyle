@@ -1,14 +1,17 @@
 """Parsed source code checkers for docstring violations."""
 
 import ast
+import os
 import string
 import sys
 import textwrap
+import traceback
 import tokenize as tk
 from itertools import takewhile, chain
 from re import compile as re
 from collections import namedtuple
 
+import sentry_sdk
 from . import violations
 from .config import IllegalConfiguration
 from .parser import (Package, Module, Class, NestedClass, Definition, AllError,
@@ -19,6 +22,7 @@ from .wordlists import IMPERATIVE_VERBS, IMPERATIVE_BLACKLIST, stem
 
 
 __all__ = ('check', )
+sentry_sdk.init(dsn=os.environ.get("SENTRY_DSN"))
 
 
 def check_for(kind, terminal=False):
@@ -105,7 +109,20 @@ class ConventionChecker:
     )
 
     def check_source(self, source, filename, ignore_decorators=None):
-        module = parse(StringIO(source), filename)
+        try:
+            module = parse(StringIO(source), filename)
+        except ParseError as err:
+            err_traceback = traceback.format_exc()
+            message = "Flake8 analysis on a file skipped as pydocstyle parsing failed. THIS IS HANDLED."
+
+            with sentry_sdk.configure_scope() as scope:
+                scope.level = 'info'
+                scope.set_tag("File name", filename)
+                scope.set_extra("Traceback", err_traceback)
+
+            sentry_sdk.capture_message(message)
+            return
+
         for definition in module:
             for this_check in self.checks:
                 terminate = False
