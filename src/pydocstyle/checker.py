@@ -1024,7 +1024,10 @@ def get_leading_words(line):
 
 def get_function_args(function_string):
     """Return the function arguments given the source-code string."""
-    function_arg_node = ast.parse(textwrap.dedent(function_string)).body[0].args
+    try:
+        function_arg_node = ast.parse(textwrap.dedent(function_string)).body[0].args
+    except IndentationError:
+        return []
     arg_nodes = function_arg_node.args
     kwonly_arg_nodes = function_arg_node.kwonlyargs
     return [arg_node.arg for arg_node in chain(arg_nodes, kwonly_arg_nodes)]
