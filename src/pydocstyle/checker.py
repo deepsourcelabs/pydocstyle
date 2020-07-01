@@ -121,7 +121,7 @@ class ConventionChecker:
             module = parse(StringIO(source), filename)
         except ParseError as err:
             err_traceback = traceback.format_exc()
-            message = "Flake8 analysis on a file skipped as pydocstyle parsing failed. THIS IS HANDLED."
+            message = "Flake8 analysis on a file skipped as pydocstyle parsing failed."
 
             with sentry_sdk.configure_scope() as scope:
                 scope.level = 'info'
